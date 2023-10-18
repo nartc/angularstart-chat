@@ -1,6 +1,6 @@
-import { Route } from '@angular/router';
+import { Routes } from '@angular/router';
 
-export const AUTH_ROUTES: Route[] = [
+export default [
 	{ path: 'login', loadComponent: () => import('./login/login.component') },
 	{
 		path: 'register',
@@ -11,4 +11,4 @@ export const AUTH_ROUTES: Route[] = [
 		redirectTo: 'login',
 		pathMatch: 'full',
 	},
-];
+] as Routes;
