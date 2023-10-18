@@ -12,7 +12,12 @@
 // (imported above). For each palette, you can optionally specify a default, lighter, and darker
 // hue. Available color palettes: https://material.io/design/color/
 $angularstart-chat-primary: mat.define-palette(mat.$orange-palette);
-$angularstart-chat-accent: mat.define-palette(mat.$blue-gray-palette, 700, 800, 900);
+$angularstart-chat-accent: mat.define-palette(
+	mat.$blue-gray-palette,
+	700,
+	800,
+	900
+);
 
 // The warn palette is optional (defaults to red).
 $angularstart-chat-warn: mat.define-palette(mat.$red-palette);
@@ -35,7 +40,10 @@ $angularstart-chat-theme: mat.define-light-theme(
 @include mat.all-component-themes($angularstart-chat-theme);
 
 $primary: mat.get-color-from-palette($angularstart-chat-primary, default);
-$primary-lighter: mat.get-color-from-palette($angularstart-chat-primary, lighter);
+$primary-lighter: mat.get-color-from-palette(
+	$angularstart-chat-primary,
+	lighter
+);
 $primary-darker: mat.get-color-from-palette($angularstart-chat-primary, darker);
 
 $accent: mat.get-color-from-palette($angularstart-chat-accent, A200);
@@ -73,7 +81,11 @@ body {
 }
 
 .gradient-bg {
-	background: linear-gradient(138deg, var(--primary-darker-color) 0%, var(--primary-color) 100%);
+	background: linear-gradient(
+		138deg,
+		var(--primary-darker-color) 0%,
+		var(--primary-color) 100%
+	);
 }
 
 .spacer {

@@ -1,52 +1,53 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { User, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { signal } from '@angular/core';
+import {
+	createUserWithEmailAndPassword,
+	signInWithEmailAndPassword,
+	signOut,
+	type User,
+} from 'firebase/auth';
+import { connect } from 'ngxtension/connect';
+import { createInjectionToken } from 'ngxtension/create-injection-token';
 import { authState } from 'rxfire/auth';
-import { defer, from } from 'rxjs';
-import { AUTH } from 'src/app/app.config';
-import { Credentials } from '../interfaces/credentials';
+import { defer } from 'rxjs';
+import { injectFirebaseAuth } from 'src/app/app.config';
+import { type Credentials } from '../interfaces/credentials';
 
 export type AuthUser = User | null | undefined;
 
-interface AuthState {
-	user: AuthUser;
-}
+export const [injectAuthService] = createInjectionToken(() => {
+	const auth = injectFirebaseAuth();
 
-@Injectable({
-	providedIn: 'root',
-})
-export class AuthService {
-	private auth = inject(AUTH);
-
-	// sources
-	private user$ = authState(this.auth);
+	// source$
+	const user$ = authState(auth);
 
 	// state
-	private state = signal<AuthState>({
-		user: undefined,
-	});
+	const user = signal<AuthUser>(undefined);
 
-	// selectors
-	user = computed(() => this.state().user);
+	// reducer
+	connect(user, user$);
 
-	constructor() {
-		this.user$.pipe(takeUntilDestroyed()).subscribe((user) =>
-			this.state.update((state) => ({
-				...state,
-				user,
-			})),
-		);
-	}
-
-	login(credentials: Credentials) {
-		return from(defer(() => signInWithEmailAndPassword(this.auth, credentials.email, credentials.password)));
-	}
-
-	logout() {
-		signOut(this.auth);
-	}
-
-	createAccount(credentials: Credentials) {
-		return from(defer(() => createUserWithEmailAndPassword(this.auth, credentials.email, credentials.password)));
-	}
-}
+	return {
+		user: user.asReadonly(),
+		login: (credentials: Credentials) => {
+			return defer(() =>
+				signInWithEmailAndPassword(
+					auth,
+					credentials.email,
+					credentials.password,
+				),
+			);
+		},
+		logout: () => {
+			signOut(auth);
+		},
+		createAccount: (credentials: Credentials) => {
+			return defer(() =>
+				createUserWithEmailAndPassword(
+					auth,
+					credentials.email,
+					credentials.password,
+				),
+			);
+		},
+	};
+});

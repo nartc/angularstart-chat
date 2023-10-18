@@ -33,7 +33,9 @@ describe('MessageListComponent', () => {
 
 			fixture.detectChanges();
 
-			const messages = fixture.debugElement.queryAll(By.css('[data-testid="message"]'));
+			const messages = fixture.debugElement.queryAll(
+				By.css('[data-testid="message"]'),
+			);
 
 			expect(messages.length).toEqual(testMessages.length);
 		});

@@ -5,8 +5,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { Credentials } from 'src/app/shared/interfaces/credentials';
-import { RegisterStatus } from '../data-access/register.service';
+import type { Credentials } from 'src/app/shared/interfaces/credentials';
+import type { RegisterStatus } from '../data-access/register.service';
 import { passwordMatchesValidator } from '../utils/password-matches';
 
 @Component({
@@ -16,9 +16,15 @@ import { passwordMatchesValidator } from '../utils/password-matches';
 		<form [formGroup]="registerForm" (ngSubmit)="onSubmit()" #form="ngForm">
 			<mat-form-field appearance="fill">
 				<mat-label>email</mat-label>
-				<input matNativeControl formControlName="email" type="email" placeholder="email" />
+				<input
+					matNativeControl
+					formControlName="email"
+					type="email"
+					placeholder="email"
+				/>
 				<mat-icon matPrefix>email</mat-icon>
-				@if( (registerForm.controls.email.dirty || form.submitted) && !registerForm.controls.email.valid ) {
+				@if( (registerForm.controls.email.dirty || form.submitted) &&
+				!registerForm.controls.email.valid ) {
 				<mat-error>Please provide a valid email</mat-error>
 				}
 			</mat-form-field>
@@ -32,16 +38,22 @@ import { passwordMatchesValidator } from '../utils/password-matches';
 					placeholder="password"
 				/>
 				<mat-icon matPrefix>lock</mat-icon>
-				@if( (registerForm.controls.password.dirty || form.submitted) && !registerForm.controls.password.valid ){
+				@if( (registerForm.controls.password.dirty || form.submitted) &&
+				!registerForm.controls.password.valid ){
 				<mat-error>Password must be at least 8 characters long</mat-error>
 				}
 			</mat-form-field>
 			<mat-form-field>
 				<mat-label>confirm password</mat-label>
-				<input matNativeControl formControlName="confirmPassword" type="password" placeholder="confirm password" />
+				<input
+					matNativeControl
+					formControlName="confirmPassword"
+					type="password"
+					placeholder="confirm password"
+				/>
 				<mat-icon matPrefix>lock</mat-icon>
-				@if( (registerForm.controls.confirmPassword.dirty || form.submitted) && registerForm.hasError('passwordMatch')
-				){
+				@if( (registerForm.controls.confirmPassword.dirty || form.submitted) &&
+				registerForm.hasError('passwordMatch') ){
 				<mat-error>Must match password field</mat-error>
 				}
 			</mat-form-field>
@@ -52,7 +64,14 @@ import { passwordMatchesValidator } from '../utils/password-matches';
 			<mat-spinner diameter="50"></mat-spinner>
 			}
 
-			<button mat-raised-button color="accent" type="submit" [disabled]="status === 'creating'">Submit</button>
+			<button
+				mat-raised-button
+				color="accent"
+				type="submit"
+				[disabled]="status === 'creating'"
+			>
+				Submit
+			</button>
 		</form>
 	`,
 	imports: [
@@ -105,7 +124,8 @@ export class RegisterFormComponent {
 
 	onSubmit() {
 		if (this.registerForm.valid) {
-			const { confirmPassword, ...credentials } = this.registerForm.getRawValue();
+			const { confirmPassword, ...credentials } =
+				this.registerForm.getRawValue();
 			this.register.emit(credentials);
 		}
 	}

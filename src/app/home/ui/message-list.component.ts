@@ -1,8 +1,8 @@
 import { CdkScrollable, ScrollingModule } from '@angular/cdk/scrolling';
 import { CommonModule } from '@angular/common';
 import { Component, Input, ViewChild, effect, signal } from '@angular/core';
-import { AuthUser } from 'src/app/shared/data-access/auth.service';
-import { Message } from 'src/app/shared/interfaces/message';
+import type { AuthUser } from 'src/app/shared/data-access/auth.service';
+import type { Message } from 'src/app/shared/interfaces/message';
 
 @Component({
 	standalone: true,
@@ -12,11 +12,16 @@ import { Message } from 'src/app/shared/interfaces/message';
 			@for (message of messagesSignal(); track message.created){
 			<li
 				[ngStyle]="{
-					'flex-direction': message.author === activeUser?.email ? 'row-reverse' : 'row'
+					'flex-direction':
+						message.author === activeUser?.email ? 'row-reverse' : 'row'
 				}"
 			>
 				<div class="avatar animate-in-primary">
-					<img src="https://api.dicebear.com/7.x/bottts/svg?seed={{ message.author.split('@')[0] }}" />
+					<img
+						src="https://api.dicebear.com/7.x/bottts/svg?seed={{
+							message.author.split('@')[0]
+						}}"
+					/>
 				</div>
 				<div class="message animate-in-secondary">
 					<small>{{ message.author }}</small>

@@ -1,10 +1,10 @@
-import { Routes } from '@angular/router';
+import type { Routes } from '@angular/router';
 import { isAuthenticatedGuard } from './shared/guards/auth.guard';
 
 export const routes: Routes = [
 	{
 		path: 'auth',
-		loadChildren: () => import('./auth/auth.routes').then((m) => m.AUTH_ROUTES),
+		loadChildren: () => import('./auth/auth.routes'),
 	},
 	{
 		path: 'home',

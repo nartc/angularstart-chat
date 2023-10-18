@@ -1,55 +1,38 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { signal } from '@angular/core';
+import { connect } from 'ngxtension/connect';
+import { createInjectionToken } from 'ngxtension/create-injection-token';
 import { EMPTY, Subject, switchMap } from 'rxjs';
-import { catchError } from 'rxjs/operators';
-import { AuthService } from 'src/app/shared/data-access/auth.service';
-import { Credentials } from 'src/app/shared/interfaces/credentials';
+import { catchError, map } from 'rxjs/operators';
+import { injectAuthService } from 'src/app/shared/data-access/auth.service';
+import type { Credentials } from 'src/app/shared/interfaces/credentials';
 
 export type LoginStatus = 'pending' | 'authenticating' | 'success' | 'error';
 
-interface LoginState {
-	status: LoginStatus;
-}
+export const [injectLoginService, provideLoginService] = createInjectionToken(
+	() => {
+		const authService = injectAuthService();
 
-@Injectable()
-export class LoginService {
-	private authService = inject(AuthService);
+		const error$ = new Subject<any>();
+		const login$ = new Subject<Credentials>();
 
-	// sources
-	error$ = new Subject<any>();
-	login$ = new Subject<Credentials>();
-
-	userAuthenticated$ = this.login$.pipe(
-		switchMap((credentials) =>
-			this.authService.login(credentials).pipe(
-				catchError((err) => {
-					this.error$.next(err);
-					return EMPTY;
-				}),
+		const userAuthenticated$ = login$.pipe(
+			switchMap((credentials) =>
+				authService.login(credentials).pipe(
+					catchError((err) => {
+						error$.next(err);
+						return EMPTY;
+					}),
+				),
 			),
-		),
-	);
+		);
 
-	// state
-	private state = signal<LoginState>({
-		status: 'pending',
-	});
+		const status = signal<LoginStatus>('pending');
 
-	// selectors
-	status = computed(() => this.state().status);
+		connect(status, userAuthenticated$.pipe(map(() => 'success')));
+		connect(status, login$.pipe(map(() => 'authenticating')));
+		connect(status, error$.pipe(map(() => 'error')));
 
-	constructor() {
-		// reducers
-		this.userAuthenticated$
-			.pipe(takeUntilDestroyed())
-			.subscribe(() => this.state.update((state) => ({ ...state, status: 'success' })));
-
-		this.login$
-			.pipe(takeUntilDestroyed())
-			.subscribe(() => this.state.update((state) => ({ ...state, status: 'authenticating' })));
-
-		this.error$
-			.pipe(takeUntilDestroyed())
-			.subscribe(() => this.state.update((state) => ({ ...state, status: 'error' })));
-	}
-}
+		return { status: status.asReadonly(), login$ };
+	},
+	{ isRoot: false },
+);

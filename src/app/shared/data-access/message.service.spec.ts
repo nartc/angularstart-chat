@@ -5,7 +5,9 @@ xdescribe('MessageService', () => {
 	let service: MessageService;
 
 	const mockCollectionReference = jest.fn();
-	const mockCollection = jest.fn().mockReturnValue(mockCollectionReference as any);
+	const mockCollection = jest
+		.fn()
+		.mockReturnValue(mockCollectionReference as any);
 	const mockAddDoc = jest.fn();
 
 	const testUser = {

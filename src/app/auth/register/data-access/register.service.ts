@@ -1,54 +1,42 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { EMPTY, Subject, catchError, switchMap } from 'rxjs';
-import { AuthService } from 'src/app/shared/data-access/auth.service';
-import { Credentials } from 'src/app/shared/interfaces/credentials';
+import { signal } from '@angular/core';
+import { connect } from 'ngxtension/connect';
+import { createInjectionToken } from 'ngxtension/create-injection-token';
+import { EMPTY, Subject, catchError, map, switchMap } from 'rxjs';
+import { injectAuthService } from 'src/app/shared/data-access/auth.service';
+import type { Credentials } from 'src/app/shared/interfaces/credentials';
 
 export type RegisterStatus = 'pending' | 'creating' | 'success' | 'error';
 
-interface RegisterState {
-	status: RegisterStatus;
-}
+export const [injectRegisterService, provideRegisterService] =
+	createInjectionToken(
+		() => {
+			const authService = injectAuthService();
 
-@Injectable()
-export class RegisterService {
-	private authService = inject(AuthService);
+			// sources$
+			const error$ = new Subject<any>();
+			const createUser$ = new Subject<Credentials>();
 
-	// sources
-	error$ = new Subject<any>();
-	createUser$ = new Subject<Credentials>();
+			const userCreated$ = createUser$.pipe(
+				switchMap((credentials) =>
+					authService.createAccount(credentials).pipe(
+						catchError((err) => {
+							error$.next(err);
+							return EMPTY;
+						}),
+					),
+				),
+			);
 
-	userCreated$ = this.createUser$.pipe(
-		switchMap((credentials) =>
-			this.authService.createAccount(credentials).pipe(
-				catchError((err) => {
-					this.error$.next(err);
-					return EMPTY;
-				}),
-			),
-		),
+			const status = signal<RegisterStatus>('pending');
+
+			connect(status, userCreated$.pipe(map(() => 'success')));
+			connect(status, createUser$.pipe(map(() => 'creating')));
+			connect(status, error$.pipe(map(() => 'error')));
+
+			return {
+				status: status.asReadonly(),
+				createUser$,
+			};
+		},
+		{ isRoot: false },
 	);
-
-	// state
-	private state = signal<RegisterState>({
-		status: 'pending',
-	});
-
-	// selectors
-	status = computed(() => this.state().status);
-
-	constructor() {
-		// reducers
-		this.userCreated$
-			.pipe(takeUntilDestroyed())
-			.subscribe(() => this.state.update((state) => ({ ...state, status: 'success' })));
-
-		this.createUser$
-			.pipe(takeUntilDestroyed())
-			.subscribe(() => this.state.update((state) => ({ ...state, status: 'creating' })));
-
-		this.error$
-			.pipe(takeUntilDestroyed())
-			.subscribe(() => this.state.update((state) => ({ ...state, status: 'error' })));
-	}
-}

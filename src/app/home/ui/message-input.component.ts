@@ -7,8 +7,15 @@ import { MatIconModule } from '@angular/material/icon';
 	standalone: true,
 	selector: 'app-message-input',
 	template: `
-		<input type="text" [formControl]="messageControl" placeholder="type a message..." />
-		<button mat-button (click)="send.emit(messageControl.value); messageControl.reset()">
+		<input
+			type="text"
+			[formControl]="messageControl"
+			placeholder="type a message..."
+		/>
+		<button
+			mat-button
+			(click)="send.emit(messageControl.value); messageControl.reset()"
+		>
 			<mat-icon>send</mat-icon>
 		</button>
 	`,

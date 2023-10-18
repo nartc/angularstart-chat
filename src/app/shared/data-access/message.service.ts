@@ -1,90 +1,71 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { addDoc, collection, limit, orderBy, query } from 'firebase/firestore';
+import { connect } from 'ngxtension/connect';
+import { createInjectionToken } from 'ngxtension/create-injection-token';
 import { collectionData } from 'rxfire/firestore';
-import { Observable, Subject, defer, exhaustMap, from } from 'rxjs';
+import { Subject, defer, exhaustMap, merge, type Observable } from 'rxjs';
 import { filter, map, retry } from 'rxjs/operators';
+import { injectFirestore } from 'src/app/app.config';
+import type { Message } from '../interfaces/message';
+import { injectAuthService } from './auth.service';
 
-import { FIRESTORE } from 'src/app/app.config';
-import { Message } from '../interfaces/message';
-import { AuthService } from './auth.service';
+export const [injectMessageService] = createInjectionToken(() => {
+	const [firestore, authService] = [injectFirestore(), injectAuthService()];
 
-interface MessageState {
-	messages: Message[];
-	error: string | null;
-}
+	const authUser$ = toObservable(authService.user);
 
-@Injectable({
-	providedIn: 'root',
-})
-export class MessageService {
-	private firestore = inject(FIRESTORE);
-	private authService = inject(AuthService);
-	private authUser$ = toObservable(this.authService.user);
-
-	// sources
-	messages$ = this.getMessages().pipe(
-		// restart stream when user reauthenticates
-		retry({
-			delay: () => this.authUser$.pipe(filter((user) => !!user)),
-		}),
-	);
-	add$ = new Subject<Message['content']>();
-	error$ = new Subject<string>();
-	logout$ = this.authUser$.pipe(filter((user) => !user));
-
-	// state
-	private state = signal<MessageState>({
-		messages: [],
-		error: null,
-	});
-
-	// selectors
-	messages = computed(() => this.state().messages);
-	error = computed(() => this.state().error);
-
-	constructor() {
-		// reducers
-		this.messages$.pipe(takeUntilDestroyed()).subscribe((messages) =>
-			this.state.update((state) => ({
-				...state,
-				messages,
-			})),
+	const getMessages = () => {
+		const messagesCollection = query(
+			collection(firestore, 'messages'),
+			orderBy('created', 'desc'),
+			limit(50),
 		);
-
-		this.add$
-			.pipe(
-				takeUntilDestroyed(),
-				exhaustMap((message) => this.addMessage(message)),
-			)
-			.subscribe({
-				error: (err) => {
-					console.log(err);
-					this.error$.next('Failed to send message');
-				},
-			});
-
-		this.logout$.pipe(takeUntilDestroyed()).subscribe(() => this.state.update((state) => ({ ...state, messages: [] })));
-
-		this.error$.pipe(takeUntilDestroyed()).subscribe((error) => this.state.update((state) => ({ ...state, error })));
-	}
-
-	private getMessages() {
-		const messagesCollection = query(collection(this.firestore, 'messages'), orderBy('created', 'desc'), limit(50));
 
 		return collectionData(messagesCollection, { idField: 'id' }).pipe(
 			map((messages) => [...messages].reverse()),
 		) as Observable<Message[]>;
-	}
+	};
 
-	private addMessage(message: string) {
+	// sources$
+	const messages$ = getMessages().pipe(
+		retry({
+			delay: () => authUser$.pipe(filter((user) => !!user)),
+		}),
+	);
+	const add$ = new Subject<Message['content']>();
+	const error$ = new Subject<string>();
+	const logout$ = authUser$.pipe(filter((user) => !user));
+
+	// state
+	const messages = signal<Message[]>([]);
+	const error = signal<string | null>(null);
+
+	// reducers
+	const addMessage = (message: string) => {
 		const newMessage = {
-			author: this.authService.user()?.email,
+			author: authService.user()?.email,
 			content: message,
 			created: Date.now().toString(),
 		};
 
-		const messagesCollection = collection(this.firestore, 'messages');
-		return defer(() => from(addDoc(messagesCollection, newMessage)));
-	}
-}
+		const messagesCollection = collection(firestore, 'messages');
+		return defer(() => addDoc(messagesCollection, newMessage));
+	};
+
+	add$.pipe(takeUntilDestroyed(), exhaustMap(addMessage)).subscribe({
+		error: (err) => {
+			console.log(err);
+			error$.next('Failed to send message');
+		},
+	});
+
+	connect(messages, merge(messages$, logout$.pipe(map(() => []))));
+	connect(error, error$);
+
+	return {
+		messages: messages.asReadonly(),
+		error: error.asReadonly(),
+		add$,
+	};
+});

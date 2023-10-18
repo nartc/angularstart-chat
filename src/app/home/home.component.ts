@@ -3,8 +3,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { Router } from '@angular/router';
-import { AuthService } from '../shared/data-access/auth.service';
-import { MessageService } from '../shared/data-access/message.service';
+
+import { injectAuthService } from '../shared/data-access/auth.service';
+import { injectMessageService } from '../shared/data-access/message.service';
 import { MessageInputComponent } from './ui/message-input.component';
 import { MessageListComponent } from './ui/message-list.component';
 
@@ -19,11 +20,20 @@ import { MessageListComponent } from './ui/message-list.component';
 					<mat-icon>logout</mat-icon>
 				</button>
 			</mat-toolbar>
-			<app-message-list [messages]="messageService.messages()" [activeUser]="authService.user()" />
+			<app-message-list
+				[messages]="messageService.messages()"
+				[activeUser]="authService.user()"
+			/>
 			<app-message-input (send)="messageService.add$.next($event)" />
 		</div>
 	`,
-	imports: [MessageInputComponent, MessageListComponent, MatToolbarModule, MatIconModule, MatButtonModule],
+	imports: [
+		MessageInputComponent,
+		MessageListComponent,
+		MatToolbarModule,
+		MatIconModule,
+		MatButtonModule,
+	],
 	styles: [
 		`
 			.container {
@@ -50,8 +60,8 @@ import { MessageListComponent } from './ui/message-list.component';
 	],
 })
 export default class HomeComponent {
-	messageService = inject(MessageService);
-	authService = inject(AuthService);
+	messageService = injectMessageService();
+	authService = injectAuthService();
 	private router = inject(Router);
 
 	constructor() {
