@@ -1,7 +1,7 @@
 import { signal } from '@angular/core';
 import { connect } from 'ngxtension/connect';
 import { createInjectionToken } from 'ngxtension/create-injection-token';
-import { EMPTY, Subject, catchError, map, switchMap } from 'rxjs';
+import { Subject, map, merge, switchMap } from 'rxjs';
 import { injectAuthService } from 'src/app/shared/data-access/auth.service';
 import type { Credentials } from 'src/app/shared/interfaces/credentials';
 
@@ -18,20 +18,21 @@ export const [injectRegisterService, provideRegisterService] =
 
 			const userCreated$ = createUser$.pipe(
 				switchMap((credentials) =>
-					authService.createAccount(credentials).pipe(
-						catchError((err) => {
-							error$.next(err);
-							return EMPTY;
-						}),
-					),
+					authService.createAccount(credentials).catch((err) => {
+						error$.next(err);
+						return null as never;
+					}),
 				),
 			);
 
-			const status = signal<RegisterStatus>('pending');
+			const nextStatus$ = merge(
+				userCreated$.pipe(map(() => 'success' as const)),
+				createUser$.pipe(map(() => 'creating' as const)),
+				error$.pipe(map(() => 'error' as const)),
+			);
 
-			connect(status, userCreated$.pipe(map(() => 'success')));
-			connect(status, createUser$.pipe(map(() => 'creating')));
-			connect(status, error$.pipe(map(() => 'error')));
+			const status = signal<RegisterStatus>('pending');
+			connect(status, nextStatus$);
 
 			return {
 				status: status.asReadonly(),

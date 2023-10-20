@@ -1,8 +1,8 @@
 import { signal } from '@angular/core';
 import { connect } from 'ngxtension/connect';
 import { createInjectionToken } from 'ngxtension/create-injection-token';
-import { EMPTY, Subject, switchMap } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { Subject, merge, switchMap } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { injectAuthService } from 'src/app/shared/data-access/auth.service';
 import type { Credentials } from 'src/app/shared/interfaces/credentials';
 
@@ -17,20 +17,20 @@ export const [injectLoginService, provideLoginService] = createInjectionToken(
 
 		const userAuthenticated$ = login$.pipe(
 			switchMap((credentials) =>
-				authService.login(credentials).pipe(
-					catchError((err) => {
-						error$.next(err);
-						return EMPTY;
-					}),
-				),
+				authService.login(credentials).catch((err) => {
+					error$.next(err);
+					return null as never;
+				}),
 			),
+		);
+		const nextStatus$ = merge(
+			userAuthenticated$.pipe(map(() => 'success' as const)),
+			login$.pipe(map(() => 'authenticating' as const)),
+			error$.pipe(map(() => 'error' as const)),
 		);
 
 		const status = signal<LoginStatus>('pending');
-
-		connect(status, userAuthenticated$.pipe(map(() => 'success')));
-		connect(status, login$.pipe(map(() => 'authenticating')));
-		connect(status, error$.pipe(map(() => 'error')));
+		connect(status, nextStatus$);
 
 		return { status: status.asReadonly(), login$ };
 	},

@@ -14,9 +14,13 @@ import { environment } from '../environments/environment';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { routes } from './app.routes';
 
-const app = initializeApp(environment.firebase);
+const [injectEnvironment] = createInjectionToken(() => environment);
+
+const [injectFirebaseApp, , , provideFirebaseAppInitializer] =
+	createInjectionToken(() => initializeApp(injectEnvironment().firebase));
 
 export const [injectFirebaseAuth] = createInjectionToken(() => {
+	const environment = injectEnvironment();
 	const auth = getAuth();
 
 	if (environment.useEmulators) {
@@ -29,6 +33,8 @@ export const [injectFirebaseAuth] = createInjectionToken(() => {
 });
 
 export const [injectFirestore] = createInjectionToken(() => {
+	const [app, environment] = [injectFirebaseApp(), injectEnvironment()];
+
 	let firestore: Firestore;
 	if (environment.useEmulators) {
 		firestore = initializeFirestore(app, {});
@@ -40,5 +46,9 @@ export const [injectFirestore] = createInjectionToken(() => {
 });
 
 export const appConfig: ApplicationConfig = {
-	providers: [provideRouter(routes), provideAnimations()],
+	providers: [
+		provideFirebaseAppInitializer(),
+		provideRouter(routes),
+		provideAnimations(),
+	],
 };

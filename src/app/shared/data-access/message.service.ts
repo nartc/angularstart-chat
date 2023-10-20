@@ -1,4 +1,4 @@
-import { signal } from '@angular/core';
+import { computed, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { addDoc, collection, limit, orderBy, query } from 'firebase/firestore';
 import { connect } from 'ngxtension/connect';
@@ -38,8 +38,10 @@ export const [injectMessageService] = createInjectionToken(() => {
 	const logout$ = authUser$.pipe(filter((user) => !user));
 
 	// state
-	const messages = signal<Message[]>([]);
-	const error = signal<string | null>(null);
+	const state = signal({
+		messages: [] as Message[],
+		error: null as string | null,
+	});
 
 	// reducers
 	const addMessage = (message: string) => {
@@ -60,12 +62,16 @@ export const [injectMessageService] = createInjectionToken(() => {
 		},
 	});
 
-	connect(messages, merge(messages$, logout$.pipe(map(() => []))));
-	connect(error, error$);
+	const nextMessages$ = merge(messages$, logout$.pipe(map(() => []))).pipe(
+		map((messages) => ({ messages })),
+	);
+	const nextError$ = error$.pipe(map((error) => ({ error })));
+
+	connect(state, merge(nextMessages$, nextError$));
 
 	return {
-		messages: messages.asReadonly(),
-		error: error.asReadonly(),
+		messages: computed(() => state().messages),
+		error: computed(() => state().error),
 		add$,
 	};
 });

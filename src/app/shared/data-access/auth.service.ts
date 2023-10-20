@@ -8,7 +8,6 @@ import {
 import { connect } from 'ngxtension/connect';
 import { createInjectionToken } from 'ngxtension/create-injection-token';
 import { authState } from 'rxfire/auth';
-import { defer } from 'rxjs';
 import { injectFirebaseAuth } from 'src/app/app.config';
 import { type Credentials } from '../interfaces/credentials';
 
@@ -29,24 +28,20 @@ export const [injectAuthService] = createInjectionToken(() => {
 	return {
 		user: user.asReadonly(),
 		login: (credentials: Credentials) => {
-			return defer(() =>
-				signInWithEmailAndPassword(
-					auth,
-					credentials.email,
-					credentials.password,
-				),
+			return signInWithEmailAndPassword(
+				auth,
+				credentials.email,
+				credentials.password,
 			);
 		},
 		logout: () => {
 			signOut(auth);
 		},
 		createAccount: (credentials: Credentials) => {
-			return defer(() =>
-				createUserWithEmailAndPassword(
-					auth,
-					credentials.email,
-					credentials.password,
-				),
+			return createUserWithEmailAndPassword(
+				auth,
+				credentials.email,
+				credentials.password,
 			);
 		},
 	};
